@@ -22,15 +22,19 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        token: ${{ secrets.GH_TOKEN }}
         fetch-depth: 0
 
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
+        token: ${{ secrets.GH_TOKEN }}
         dotnet-version: 8.0.x
 
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
+      with:
+        token: ${{ secrets.GH_TOKEN }}
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.Solution_Name }}
@@ -91,18 +95,22 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_TOKEN }}
 
     - name: Download build artifacts x64
       uses: actions/download-artifact@v4
       with:
         name: Release_Package_win-x64_${{ github.run_id }}
         path: release_package_win-x64.zip
+        token: ${{ secrets.GH_TOKEN }}
 
     - name: Download build artifacts x86
       uses: actions/download-artifact@v4
       with:
         name: Release_Package_win-x86_${{ github.run_id }}
         path: release_package_win-x86.zip
+        token: ${{ secrets.GH_TOKEN }}
 
     - name: Create dynamic version tag
       id: tag_version
