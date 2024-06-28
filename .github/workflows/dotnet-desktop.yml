@@ -11,12 +11,12 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
-        runtime: [win-x64, win-x86]  # Removed win-arm
+        runtime: [win-x64, win-x86]
 
     runs-on: windows-latest
 
     env:
-      Solution_Name: StockNote.IO.sln  # Replace with your solution name
+      Solution_Name: StockNote.IO.sln
 
     steps:
     - name: Checkout
@@ -39,34 +39,34 @@ jobs:
       run: dotnet build ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }}
 
     - name: Publish
-      run: dotnet publish ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --runtime ${{ matrix.runtime }} --output ${{ github.workspace }}/publish_output_${{ matrix.runtime }}
+      run: dotnet publish ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --runtime ${{ matrix.runtime }} --output publish_output_${{ matrix.runtime }}
 
     - name: Generate self-signed certificate
       run: |
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourCompany" -CertStoreLocation "Cert:\CurrentUser\My"
         $password = ConvertTo-SecureString -String "YourPassword" -Force -AsPlainText
-        Export-PfxCertificate -Cert $cert -FilePath ${{ github.workspace }}/GitHubActionsWorkflow.pfx -Password $password
+        Export-PfxCertificate -Cert $cert -FilePath GitHubActionsWorkflow.pfx -Password $password
 
     - name: Sign the application
       run: |
         $timestampServer = "http://timestamp.digicert.com"
-        $certPath = "${{ github.workspace }}/GitHubActionsWorkflow.pfx"
+        $certPath = "GitHubActionsWorkflow.pfx"
         $certPass = "YourPassword"
         $signTool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe"
-        $filesToSign = Get-ChildItem -Path ${{ github.workspace }}/publish_output_${{ matrix.runtime }} -Filter "*.dll,*.exe" -Recurse
+        $filesToSign = Get-ChildItem -Path publish_output_${{ matrix.runtime }} -Filter "*.dll,*.exe" -Recurse
         foreach ($file in $filesToSign) {
           & $signTool sign /f $certPath /p $certPass /tr $timestampServer /td sha256 /fd sha256 $file.FullName
         }
 
     - name: Compress build artifacts
       run: |
-        Compress-Archive -Path ${{ github.workspace }}/publish_output_${{ matrix.runtime }}\* -DestinationPath ${{ github.workspace }}/release_package_${{ matrix.runtime }}.zip
+        Compress-Archive -Path publish_output_${{ matrix.runtime }}\* -DestinationPath release_package_${{ matrix.runtime }}.zip
         echo "Contents of the current directory after compression:"
-        Get-ChildItem ${{ github.workspace }}
+        Get-ChildItem -Path release_package_${{ matrix.runtime }}.zip
 
     - name: Verify ZIP file exists
       run: |
-        if (Test-Path ${{ github.workspace }}/release_package_${{ matrix.runtime }}.zip) {
+        if (Test-Path release_package_${{ matrix.runtime }}.zip) {
           echo "ZIP file exists"
         } else {
           echo "ZIP file does not exist"
@@ -76,14 +76,14 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Release_Package_${{ matrix.runtime }}_${{ github.run_id }}
-        path: ${{ github.workspace }}/release_package_${{ matrix.runtime }}.zip
+        name: Release_Package_${{ matrix.runtime }}
+        path: release_package_${{ matrix.runtime }}.zip
         if-no-files-found: warn
         compression-level: 6
         overwrite: true
 
     - name: Remove the pfx
-      run: Remove-Item -path ${{ github.workspace }}/GitHubActionsWorkflow.pfx
+      run: Remove-Item -path GitHubActionsWorkflow.pfx
 
   release:
     needs: build
@@ -95,14 +95,14 @@ jobs:
     - name: Download build artifacts x64
       uses: actions/download-artifact@v4
       with:
-        name: Release_Package_win-x64_${{ github.run_id }}
-        path: ./release_package/win-x64.zip
+        name: Release_Package_win-x64
+        path: ./release_package_win-x64.zip
 
     - name: Download build artifacts x86
       uses: actions/download-artifact@v4
       with:
-        name: Release_Package_win-x86_${{ github.run_id }}
-        path: ./release_package/win-x86.zip
+        name: Release_Package_win-x86
+        path: ./release_package_win-x86.zip
 
     - name: Create dynamic version tag
       id: tag_version
@@ -114,8 +114,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
-        tag_name: ${{ steps.tag_version.outputs.tag }}  # Use dynamic tag name
-        release_name: Release ${{ steps.tag_version.outputs.tag }}  # Use dynamic release name
+        tag_name: ${{ steps.tag_version.outputs.tag }}
+        release_name: Release ${{ steps.tag_version.outputs.tag }}
         draft: false
         prerelease: false
 
@@ -125,7 +125,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package/win-x64.zip
+        asset_path: ./release_package_win-x64.zip
         asset_name: release_package_win-x64.zip
         asset_content_type: application/zip
 
@@ -135,6 +135,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package/win-x86.zip
+        asset_path: ./release_package_win-x86.zip
         asset_name: release_package_win-x86.zip
         asset_content_type: application/zip
