@@ -76,7 +76,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Release_Package_${{ matrix.runtime }}
+        name: Release_Package_${{ matrix.runtime }}_${{ github.run_id }}
         path: release_package_${{ matrix.runtime }}.zip
         if-no-files-found: warn
         compression-level: 6
@@ -95,14 +95,14 @@ jobs:
     - name: Download build artifacts x64
       uses: actions/download-artifact@v4
       with:
-        name: Release_Package_win-x64
-        path: ./release_package_win-x64.zip
+        name: Release_Package_win-x64_${{ github.run_id }}
+        path: release_package_win-x64.zip
 
     - name: Download build artifacts x86
       uses: actions/download-artifact@v4
       with:
-        name: Release_Package_win-x86
-        path: ./release_package_win-x86.zip
+        name: Release_Package_win-x86_${{ github.run_id }}
+        path: release_package_win-x86.zip
 
     - name: Create dynamic version tag
       id: tag_version
@@ -125,7 +125,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package_win-x64.zip
+        asset_path: release_package_win-x64.zip
         asset_name: release_package_win-x64.zip
         asset_content_type: application/zip
 
@@ -135,6 +135,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package_win-x86.zip
+        asset_path: release_package_win-x86.zip
         asset_name: release_package_win-x86.zip
         asset_content_type: application/zip
