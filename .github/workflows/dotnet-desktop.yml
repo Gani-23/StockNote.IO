@@ -92,14 +92,18 @@ jobs:
         name: Release Package win-x86
         path: ./release_package/win-x86.zip
 
+    - name: Create dynamic version tag
+      id: tag_version
+      run: echo ::set-output name=tag::v1.0.0-$(date +'%Y%m%d%H%M%S')
+
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
-        tag_name: v1.0.0  # Update this version as needed
-        release_name: Release v1.0.0  # Update this name as needed
+        tag_name: ${{ steps.tag_version.outputs.tag }}  # Use dynamic tag name
+        release_name: Release ${{ steps.tag_version.outputs.tag }}  # Use dynamic release name
         draft: false
         prerelease: false
 
