@@ -11,12 +11,12 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
-        runtime: [win-x64, win-x86, win-arm]  # Add target runtimes here
+        runtime: [win-x64, win-x86]  # Removed win-arm
 
     runs-on: windows-latest
 
     env:
-      Solution_Name: StockNote.IO.sln
+      Solution_Name: StockNote.IO.sln  # Replace with your solution name
 
     steps:
     - name: Checkout
@@ -43,8 +43,8 @@ jobs:
 
     - name: Generate self-signed certificate
       run: |
-        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourCompany" -CertStoreLocation "Cert:\CurrentUser\My"
-        $password = ConvertTo-SecureString -String "YourPassword" -Force -AsPlainText
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=ANGSOL" -CertStoreLocation "Cert:\CurrentUser\My"
+        $password = ConvertTo-SecureString -String "Ganu2624l" -Force -AsPlainText
         Export-PfxCertificate -Cert $cert -FilePath "GitHubActionsWorkflow.pfx" -Password $password
 
     - name: Sign the application
@@ -89,12 +89,6 @@ jobs:
         name: Release Package win-x86
         path: ./release_package/win-x86
 
-    - name: Download build artifacts arm
-      uses: actions/download-artifact@v4
-      with:
-        name: Release Package win-arm
-        path: ./release_package/win-arm
-
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
@@ -124,14 +118,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./release_package/win-x86
         asset_name: release_package_win-x86.zip
-        asset_content_type: application/zip
-
-    - name: Upload Release Asset arm
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package/win-arm
-        asset_name: release_package_win-arm.zip
         asset_content_type: application/zip
