@@ -1,0 +1,76 @@
+name: .NET Core Desktop
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: StockNote.IO.sln  # Replace with your solution name
+      Project_Path: StockNote.IO/StockNote.IO.csproj  # Replace with the path to your main project
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Install the .NET Core SDK
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Add MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    # Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.Solution_Name }}
+
+    # Build the project
+    - name: Build
+      run: dotnet build ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }}
+
+    # Create the release package
+    - name: Publish
+      run: dotnet publish ${{ env.Project_Path }} --configuration ${{ matrix.configuration }} --output publish_output
+
+    # Decode the base 64 encoded pfx and save the Signing_Certificate
+    - name: Decode the pfx
+      run: |
+        $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx }}")
+        [IO.File]::WriteAllBytes("GitHubActionsWorkflow.pfx", $pfx_cert_byte)
+
+    # Sign the application
+    - name: Sign the application
+      run: |
+        $timestampServer = "http://timestamp.digicert.com"
+        $certPath = "GitHubActionsWorkflow.pfx"
+        $certPass = "${{ secrets.Pfx_Key }}"
+        $signTool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe"
+        $filesToSign = Get-ChildItem -Path publish_output -Filter "*.dll,*.exe" -Recurse
+        foreach ($file in $filesToSign) {
+          & $signTool sign /f $certPath /p $certPass /tr $timestampServer /td sha256 /fd sha256 $file.FullName
+        }
+
+    # Upload the release package
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Release Package
+        path: publish_output
+
+    # Remove the pfx
+    - name: Remove the pfx
+      run: Remove-Item -path GitHubActionsWorkflow.pfx
