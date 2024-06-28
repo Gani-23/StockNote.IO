@@ -16,7 +16,6 @@ jobs:
 
     env:
       Solution_Name: StockNote.IO.sln  # Replace with your solution name
-      Project_Path: StockNote.IO/StockNote.IO/StockNote.IO.csproj  # Replace with the path to your main project
 
     steps:
     - name: Checkout
@@ -38,13 +37,13 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.Solution_Name }}
 
-    # Build the project
+    # Build the solution
     - name: Build
       run: dotnet build ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }}
 
-    # Create the release package
+    # Publish the solution
     - name: Publish
-      run: dotnet publish ${{ env.Project_Path }} --configuration ${{ matrix.configuration }} --output publish_output
+      run: dotnet publish ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --output publish_output
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
     - name: Decode the pfx
