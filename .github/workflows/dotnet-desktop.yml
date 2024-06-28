@@ -22,15 +22,19 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        token: ${{ secrets.GH_TOKEN }}
         fetch-depth: 0
 
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
+        token: ${{ secrets.GH_TOKEN }}
         dotnet-version: 8.0.x
 
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
+      with:
+        token: ${{ secrets.GH_TOKEN }}
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.Solution_Name }}
