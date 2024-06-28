@@ -7,7 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  build_and_release:
     strategy:
       matrix:
         configuration: [Debug, Release]
@@ -22,19 +22,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GH_TOKEN }}
         fetch-depth: 0
 
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
-        token: ${{ secrets.GH_TOKEN }}
         dotnet-version: 8.0.x
 
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
-      with:
-        token: ${{ secrets.GH_TOKEN }}
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.Solution_Name }}
@@ -77,41 +73,6 @@ jobs:
           exit 1
         }
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Release_Package_${{ matrix.runtime }}_${{ github.run_id }}
-        path: ${{ github.workspace }}/release_package_${{ matrix.runtime }}.zip
-        if-no-files-found: warn
-        compression-level: 6
-        overwrite: true
-
-    - name: Remove the pfx
-      run: Remove-Item -path ${{ github.workspace }}/GitHubActionsWorkflow.pfx
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GH_TOKEN }}
-
-    - name: Download build artifacts x64
-      uses: actions/download-artifact@v4
-      with:
-        name: Release_Package_win-x64_${{ github.run_id }}
-        path: release_package_win-x64.zip
-        token: ${{ secrets.GH_TOKEN }}
-
-    - name: Download build artifacts x86
-      uses: actions/download-artifact@v4
-      with:
-        name: Release_Package_win-x86_${{ github.run_id }}
-        path: release_package_win-x86.zip
-        token: ${{ secrets.GH_TOKEN }}
-
     - name: Create dynamic version tag
       id: tag_version
       run: echo ::set-output name=tag::v1.0.0-$(date +'%Y%m%d%H%M%S')
@@ -127,22 +88,15 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset x64
+    - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: release_package_win-x64.zip
-        asset_name: release_package_win-x64.zip
+        asset_path: ${{ github.workspace }}/release_package_${{ matrix.runtime }}.zip
+        asset_name: release_package_${{ matrix.runtime }}.zip
         asset_content_type: application/zip
 
-    - name: Upload Release Asset x86
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: release_package_win-x86.zip
-        asset_name: release_package_win-x86.zip
-        asset_content_type: application/zip
+    - name: Remove the pfx
+      run: Remove-Item -path ${{ github.workspace }}/GitHubActionsWorkflow.pfx
