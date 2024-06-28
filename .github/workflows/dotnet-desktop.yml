@@ -11,11 +11,12 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
+        runtime: [win-x64, win-x86, win-arm]  # Add target runtimes here
 
     runs-on: windows-latest
 
     env:
-      Solution_Name: StockNote.IO.sln  # Replace with your solution name
+      Solution_Name: StockNote.IO.sln
 
     steps:
     - name: Checkout
@@ -23,56 +24,114 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Install the .NET Core SDK
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
-    # Add MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    # Restore dependencies
     - name: Restore dependencies
       run: dotnet restore ${{ env.Solution_Name }}
 
-    # Build the solution
     - name: Build
       run: dotnet build ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }}
 
-    # Publish the solution
     - name: Publish
-      run: dotnet publish ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --output publish_output
+      run: dotnet publish ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --runtime ${{ matrix.runtime }} --output publish_output_${{ matrix.runtime }}
 
-    # Decode the base 64 encoded pfx and save the Signing_Certificate
-    - name: Decode the pfx
+    - name: Generate self-signed certificate
       run: |
-        $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx }}")
-        [IO.File]::WriteAllBytes("GitHubActionsWorkflow.pfx", $pfx_cert_byte)
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourCompany" -CertStoreLocation "Cert:\CurrentUser\My"
+        $password = ConvertTo-SecureString -String "YourPassword" -Force -AsPlainText
+        Export-PfxCertificate -Cert $cert -FilePath "GitHubActionsWorkflow.pfx" -Password $password
 
-    # Sign the application
     - name: Sign the application
       run: |
         $timestampServer = "http://timestamp.digicert.com"
         $certPath = "GitHubActionsWorkflow.pfx"
-        $certPass = "${{ secrets.Pfx_Key }}"
+        $certPass = "YourPassword"
         $signTool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe"
-        $filesToSign = Get-ChildItem -Path publish_output -Filter "*.dll,*.exe" -Recurse
+        $filesToSign = Get-ChildItem -Path publish_output_${{ matrix.runtime }} -Filter "*.dll,*.exe" -Recurse
         foreach ($file in $filesToSign) {
           & $signTool sign /f $certPath /p $certPass /tr $timestampServer /td sha256 /fd sha256 $file.FullName
         }
 
-    # Upload the release package
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Release Package
-        path: publish_output
+        name: Release Package ${{ matrix.runtime }}
+        path: publish_output_${{ matrix.runtime }}
         if-no-files-found: warn
         compression-level: 6
-        overwrite: true  # This will overwrite existing artifacts with the same name
+        overwrite: true
 
-    # Remove the pfx
     - name: Remove the pfx
       run: Remove-Item -path GitHubActionsWorkflow.pfx
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: Release Package win-x64
+        path: ./release_package/win-x64
+
+    - name: Download build artifacts x86
+      uses: actions/download-artifact@v4
+      with:
+        name: Release Package win-x86
+        path: ./release_package/win-x86
+
+    - name: Download build artifacts arm
+      uses: actions/download-artifact@v4
+      with:
+        name: Release Package win-arm
+        path: ./release_package/win-arm
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      with:
+        tag_name: v1.0.0  # Update this version as needed
+        release_name: Release v1.0.0  # Update this name as needed
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset x64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release_package/win-x64
+        asset_name: release_package_win-x64.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset x86
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release_package/win-x86
+        asset_name: release_package_win-x86.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset arm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release_package/win-arm
+        asset_name: release_package_win-arm.zip
+        asset_content_type: application/zip
