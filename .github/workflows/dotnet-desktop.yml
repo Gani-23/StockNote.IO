@@ -43,8 +43,8 @@ jobs:
 
     - name: Generate self-signed certificate
       run: |
-        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=ANGSOL" -CertStoreLocation "Cert:\CurrentUser\My"
-        $password = ConvertTo-SecureString -String "Ganu2624l" -Force -AsPlainText
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourCompany" -CertStoreLocation "Cert:\CurrentUser\My"
+        $password = ConvertTo-SecureString -String "YourPassword" -Force -AsPlainText
         Export-PfxCertificate -Cert $cert -FilePath "GitHubActionsWorkflow.pfx" -Password $password
 
     - name: Sign the application
@@ -58,11 +58,14 @@ jobs:
           & $signTool sign /f $certPath /p $certPass /tr $timestampServer /td sha256 /fd sha256 $file.FullName
         }
 
+    - name: Compress build artifacts
+      run: Compress-Archive -Path publish_output_${{ matrix.runtime }}\* -DestinationPath release_package_${{ matrix.runtime }}.zip
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Release Package ${{ matrix.runtime }}
-        path: publish_output_${{ matrix.runtime }}
+        path: release_package_${{ matrix.runtime }}.zip
         if-no-files-found: warn
         compression-level: 6
         overwrite: true
@@ -77,17 +80,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Download build artifacts
+    - name: Download build artifacts x64
       uses: actions/download-artifact@v4
       with:
         name: Release Package win-x64
-        path: ./release_package/win-x64
+        path: ./release_package/win-x64.zip
 
     - name: Download build artifacts x86
       uses: actions/download-artifact@v4
       with:
         name: Release Package win-x86
-        path: ./release_package/win-x86
+        path: ./release_package/win-x86.zip
 
     - name: Create GitHub Release
       id: create_release
@@ -106,7 +109,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package/win-x64
+        asset_path: ./release_package/win-x64.zip
         asset_name: release_package_win-x64.zip
         asset_content_type: application/zip
 
@@ -116,6 +119,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release_package/win-x86
+        asset_path: ./release_package/win-x86.zip
         asset_name: release_package_win-x86.zip
         asset_content_type: application/zip
