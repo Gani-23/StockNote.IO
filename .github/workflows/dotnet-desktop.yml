@@ -16,7 +16,7 @@ jobs:
 
     env:
       Solution_Name: StockNote.IO.sln  # Replace with your solution name
-      Project_Path: StockNote.IO/StockNote.IO.csproj  # Replace with the path to your main project
+      Project_Path: StockNote.IO/StockNote.IO/StockNote.IO.csproj  # Replace with the path to your main project
 
     steps:
     - name: Checkout
