@@ -64,6 +64,15 @@ jobs:
         echo "Contents of the current directory after compression:"
         Get-ChildItem ${{ github.workspace }}
 
+    - name: Verify ZIP file exists
+      run: |
+        if (Test-Path ${{ github.workspace }}/release_package_${{ matrix.runtime }}.zip) {
+          echo "ZIP file exists"
+        } else {
+          echo "ZIP file does not exist"
+          exit 1
+        }
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
