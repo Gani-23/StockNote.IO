@@ -43,8 +43,8 @@ jobs:
 
     - name: Generate self-signed certificate
       run: |
-        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourCompany" -CertStoreLocation "Cert:\CurrentUser\My"
-        $password = ConvertTo-SecureString -String "YourPassword" -Force -AsPlainText
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=ANGSOL" -CertStoreLocation "Cert:\CurrentUser\My"
+        $password = ConvertTo-SecureString -String "Gani5999" -Force -AsPlainText
         Export-PfxCertificate -Cert $cert -FilePath "GitHubActionsWorkflow.pfx" -Password $password
 
     - name: Sign the application
@@ -59,7 +59,9 @@ jobs:
         }
 
     - name: Compress build artifacts
-      run: Compress-Archive -Path publish_output_${{ matrix.runtime }}\* -DestinationPath release_package_${{ matrix.runtime }}.zip
+      run: |
+        Compress-Archive -Path publish_output_${{ matrix.runtime }}\* -DestinationPath release_package_${{ matrix.runtime }}.zip
+        Get-ChildItem release_package_${{ matrix.runtime }}.zip
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
