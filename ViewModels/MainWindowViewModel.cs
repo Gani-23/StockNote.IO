@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using ReactiveUI;
-using StockNote.IO.Models;
 using StockNote.IO.Views;
 
 namespace StockNote.IO.ViewModels

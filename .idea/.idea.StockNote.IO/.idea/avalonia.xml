@@ -5,6 +5,7 @@
       <map>
         <entry key="MainWindow.axaml" value="StockNote.IO.csproj" />
         <entry key="Styles/FontStyles.axaml" value="StockNote.IO.csproj" />
+        <entry key="Views/MainWindow.axaml" value="StockNote.IO.csproj" />
         <entry key="Views/Onboarding.axaml" value="StockNote.IO.csproj" />
       </map>
     </option>

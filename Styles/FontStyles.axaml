@@ -9,6 +9,7 @@
         <!-- Add Styles Here -->
         <Style Selector="TextBox">
             <Setter Property="Height" Value="30"/>
+            <Setter Property="Width" Value="250"/>
             <Setter Property="Margin" Value="10"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="BorderThickness" Value="0,0,0,2"/>
@@ -41,6 +42,12 @@
         <Style Selector="TextBlock.Heading">
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+        
+        <Style Selector="TextBlock.SubHeading">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiLight"/>
             <Setter Property="Margin" Value="10"/>
         </Style>
     </Styles>
